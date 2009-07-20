@@ -31,13 +31,21 @@ Methods:
 
 =cut
 
+# Remove ANSI color sequences when calculating length
+sub _uncolorized_length($)
+{
+    my $str = shift;
+    $str =~ s/\e \[ [^m]* m//xmsg;
+    return length $str;
+}
+
 # minimal width of $1 if word-wrapped
 sub _min_width($)
 {
     my $str = shift;
     my $min;
     for my $s (split(/\s+/,$str)) {
-        my $l = length $s;
+        my $l = _uncolorized_length $s;
         $min = $l if not defined $min or $l > $min;
     }
     return $min;
@@ -47,7 +55,7 @@ sub _min_width($)
 sub _max_width($)
 {
     my $str = shift;
-    return length $str;
+    return _uncolorized_length $str;
 }
 
 sub _max($$)
@@ -76,7 +84,7 @@ sub _wrap_line($$)
     my @t = ($text);
     while(1) {
         my $t = pop @t;
-        my $l = length $t;
+        my $l = _uncolorized_length $t;
         if($l <= $width){
             # last line is ok => done
             push @t, $t;
@@ -89,7 +97,7 @@ sub _wrap_line($$)
         }
         elsif($t =~ /(.{$width,}?\S)\s+(\S.*?)$/) {
             # nearest space > width
-            if ( length $1 > $width_m1  )
+            if ( _uncolorized_length $1 > $width_m1  )
             {
                 # hard hyphanation 
                 my $left = substr($1,0,$width);
@@ -123,7 +131,7 @@ sub _l_box($$)
 {
     my ($width, $text) = @_;
     my $lines = _wrap($width, $text);
-    map { $_ .= ' 'x($width-length($_)) } @$lines;
+    map { $_ .= ' 'x($width-_uncolorized_length($_)) } @$lines;
     return $lines;
 }
 
@@ -132,7 +140,7 @@ sub _r_box($$)
 {
     my ($width, $text) = @_;
     my $lines = _wrap($width, $text);
-    map { $_ = (' 'x($width-length($_)).$_) } @$lines;
+    map { $_ = (' 'x($width-_uncolorized_length($_)).$_) } @$lines;
     return $lines;
 }
 
