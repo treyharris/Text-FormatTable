@@ -1,0 +1,19 @@
+Revision history for Perl extension Text::FormatTable.
+
+2004-06-10
+     * Fixed column width and bottom alignment (Veselin Slavov)
+
+2003-01-28
+     * add Text::ASCIITable to SEE ALSO
+
+2002-11-05
+     * nicely format space rules
+
+2002-11-05
+
+     * released 1.00 (code seems to be stable, no problems since 1.5 years)
+     * small documentation fix
+
+2001-08-22
+
+     * first version (0.01)
