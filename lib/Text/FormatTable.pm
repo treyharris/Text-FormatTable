@@ -532,6 +532,7 @@ Text::ASCIITable
 =head1 COPYRIGHT
 
 Copyright (c) 2001-2004 Swiss Federal Institute of Technology, Zurich.
+          (c) 2009 Trey Harris
 All Rights Reserved.
 
 This module is free software; you can redistribute it and/or
@@ -540,6 +541,8 @@ modify it under the same terms as Perl itself.
 =head1 AUTHOR
 
 S<David Schweikert <dws@ee.ethz.ch>>
+
+Maintained by S<Trey Harris <treyharris@gmail.com>>
 
 Fixed column width and bottom alignment written by
 S<Veselin Slavov <vslavov@creditreform.bg>>
