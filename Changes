@@ -1,5 +1,11 @@
 Revision history for Perl extension Text::FormatTable.
 
+2009-07-23
+     * Added support for ASCII color sequences.  The escape codes are
+       no longer included when calculating column widths. (Trey
+       Harris)
+     * Trey Harris takes over maintainership.
+
 2004-06-10
      * Fixed column width and bottom alignment (Veselin Slavov)
 
