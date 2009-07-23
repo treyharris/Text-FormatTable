@@ -538,6 +538,10 @@ All Rights Reserved.
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
+=head CODE REPOSITORY
+
+Git - http://github.com/treyharris/Text-FormatTable/tree/master
+
 =head1 AUTHOR
 
 S<David Schweikert <dws@ee.ethz.ch>>
