@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Text-FormatTable
-version:             1.02
+version:             1.03
 abstract:            Format text tables
 license:             perl
 author:              
