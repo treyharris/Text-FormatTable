@@ -2,6 +2,7 @@ package Text::FormatTable;
 
 use Carp;
 use strict;
+use warnings;
 use vars qw($VERSION);
 
 $VERSION = '1.02';
