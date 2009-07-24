@@ -1,7 +1,10 @@
 use Test;
-BEGIN { plan tests => 4 };
+BEGIN { plan tests => 5 };
 use Text::FormatTable;
 ok(1); # If we made it this far, we're ok.
+
+use strict;
+use warnings;
 
 {
     my $table = Text::FormatTable->new('r| l l');
@@ -57,4 +60,15 @@ END
     my $output = $colortable->render();
     my ($rule) = ($output =~ /(=+)/);
     ok(length($rule), length("foo bar bat"));
+}
+
+# rt34546, warnings when column has zero length
+{
+    my $warning;
+    local $SIG{__WARN__} = sub { $warning = $_[0] };
+    
+    my $table = Text::FormatTable->new('l l');
+    $table->head('foo', q{});
+    my $output = $table->render();
+    ok(not defined $warning);
 }
