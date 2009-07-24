@@ -49,14 +49,15 @@ sub _min_width($)
         my $l = _uncolorized_length $s;
         $min = $l if not defined $min or $l > $min;
     }
-    return $min;
+    return $min ? $min : 1;
 }
 
 # width of $1 if not word-wrapped
 sub _max_width($)
 {
     my $str = shift;
-    return _uncolorized_length $str;
+    my $len = _uncolorized_length $str;
+    return $len ? $len : 1;
 }
 
 sub _max($$)
