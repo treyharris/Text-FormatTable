@@ -4,6 +4,10 @@ use Carp;
 use strict;
 use warnings;
 use vars qw($VERSION);
+use Unicode::GCString;
+use Text::LineFold;
+use Encode;
+my $utf8 = find_encoding('utf8');
 
 $VERSION = '1.03';
 
@@ -13,11 +17,29 @@ Text::FormatTable - Format text tables
 
 =head1 SYNOPSIS
 
- my $table = Text::FormatTable->new('r|l');
- $table->head('a', 'b');
+ #!/usr/bin/perl -w
+ use Encode;
+ use Text::FormatTable;
+ 
+ my $ascii = find_encoding('ascii');
+ my $utf8  = find_encoding('utf8');
+ my $eucjp = find_encoding('euc-jp');
+ 
+ my $text_ja = 'utf8 encoded text from outside perl';
+ $text_ja = $utf8->decode($text_ja);
+ my $text_en = 'ascii encoded text from outside perl';
+ $text_en = $utf8->decode($text_en);
+ 
+ my $table = Text::FormatTable->new('| l | l |');
+ $table->rule();
+ $table->head( 'en', 'ja' );
  $table->rule('=');
- $table->row('c', 'd');
- print $table->render(20);
+ $table->row( $text_en, $text_ja );
+ $table->rule();
+ print $eucjp->encode( $table->render(60) );
+ 
+ exit;
+ __END__
 
 =head1 DESCRIPTION
 
@@ -32,24 +54,44 @@ Methods:
 
 =cut
 
+sub linefold_columns_min {
+    my $str = shift;
+
+    return 0 if ( columns($str) == 0 );
+
+    my $line_fold_columns_min = 0;
+    my $lf = Text::LineFold->new( ColMax => 1 );
+    foreach ( split /\n/,
+        $lf->fold( '', '', utf8::is_utf8($str) ? $utf8->encode($str) : $str ) )
+    {
+        my $columns = columns($_);
+        $line_fold_columns_min = $columns
+          if ( $line_fold_columns_min < $columns );
+    }
+
+    return $line_fold_columns_min;
+}
+
+sub columns {
+    my $str = shift;
+    $str = utf8::is_utf8($str) ? $utf8->encode($str) : $str;
+    $str = $utf8->decode($str);
+    return Unicode::GCString->new($str)->columns();
+}
+
 # Remove ANSI color sequences when calculating length
 sub _uncolorized_length($)
 {
     my $str = shift;
     $str =~ s/\e \[ [^m]* m//xmsg;
-    return length $str;
+    return columns $str;
 }
 
 # minimal width of $1 if word-wrapped
 sub _min_width($)
 {
     my $str = shift;
-    my $min;
-    for my $s (split(/\s+/,$str)) {
-        my $l = _uncolorized_length $s;
-        $min = $l if not defined $min or $l > $min;
-    }
-    return $min ? $min : 1;
+    return linefold_columns_min $str;
 }
 
 # width of $1 if not word-wrapped
@@ -71,61 +113,15 @@ sub _max($$)
 sub _wrap($$)
 {
     my ($width, $text) = @_;
-    my @lines = split(/\n/, $text);
     my @w = ();
-    for my $l (@lines) {
-        push @w, @{_wrap_line($width, $l)};
-    }
+    my $lf = Text::LineFold->new( ColMax => $width );
+    @w = split /\n/,
+      $utf8->decode(
+        $lf->fold(
+            '', '', utf8::is_utf8($text) ? $utf8->encode($text) : $text
+        )
+      );
     return \@w;
-}
-
-sub _wrap_line($$)
-{
-    my ($width, $text) = @_;
-    my $width_m1 = $width-1;
-    my @t = ($text);
-    while(1) {
-        my $t = pop @t;
-        my $l = _uncolorized_length $t;
-        if($l <= $width){
-            # last line is ok => done
-            push @t, $t;
-            return \@t;
-        }
-        elsif($t =~ /^(.{0,$width_m1}\S)\s+(\S.*?)$/) {
-            # farest space < width
-            push @t, $1;
-            push @t, $2;
-        }
-        elsif($t =~ /(.{$width,}?\S)\s+(\S.*?)$/) {
-            # nearest space > width
-            if ( _uncolorized_length $1 > $width_m1  )
-            {
-                # hard hyphanation 
-                my $left = substr($1,0,$width);
-                my $right= substr($1,$width);
-
-                push @t, $left;
-                push @t, $right;
-                push @t, $2;
-            }
-            else
-            {
-                push @t, $1;
-                push @t, $2;
-            }
-        }
-        else {
-            # hard hyphanation 
-            my $left = substr($t,0,$width);
-            my $right= substr($t,$width);
-
-            push @t, $left;
-            push @t, $right;
-            return \@t;
-        }
-    }
-    return \@t;
 }
 
 # render left-box $2 with width $1
