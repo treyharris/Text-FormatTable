@@ -28,7 +28,7 @@ Text::FormatTable - Format text tables
  my $text_ja = 'utf8 encoded text from outside perl';
  $text_ja = $utf8->decode($text_ja);
  my $text_en = 'ascii encoded text from outside perl';
- $text_en = $utf8->decode($text_en);
+ $text_en = $ascii->decode($text_en);
  
  my $table = Text::FormatTable->new('| l | l |');
  $table->rule();
