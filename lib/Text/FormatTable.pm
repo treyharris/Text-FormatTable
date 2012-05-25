@@ -5,9 +5,9 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 use Unicode::GCString;
+use Unicode::LineBreak;
 use Text::LineFold;
 use Encode;
-my $utf8 = find_encoding('utf8');
 
 $VERSION = '1.03';
 
@@ -54,28 +54,23 @@ Methods:
 
 =cut
 
-sub linefold_columns_min {
+sub _linefold_columns_min {
     my $str = shift;
-
-    return 0 if ( columns($str) == 0 );
-
-    my $line_fold_columns_min = 0;
-    my $lf = Text::LineFold->new( ColMax => 1 );
-    foreach ( split /\n/,
-        $lf->fold( '', '', utf8::is_utf8($str) ? $utf8->encode($str) : $str ) )
-    {
-        my $columns = columns($_);
-        $line_fold_columns_min = $columns
-          if ( $line_fold_columns_min < $columns );
+    my $min;
+    my $lb = Unicode::LineBreak->new( ColMax => 1 );
+    foreach ($lb->break($str)) {
+        my $l = $_->columns;
+        $min = $l if not defined $min or $l > $min;
     }
-
-    return $line_fold_columns_min;
+    return $min ? $min : 1;
 }
 
-sub columns {
-    my $str = shift;
-    $str = utf8::is_utf8($str) ? $utf8->encode($str) : $str;
-    $str = $utf8->decode($str);
+sub _columns {
+    my $str = scalar shift;
+
+    return 0 if ( !defined $str || $str eq '' );
+
+    $str = decode_utf8($str) unless utf8::is_utf8($str);
     return Unicode::GCString->new($str)->columns();
 }
 
@@ -84,14 +79,14 @@ sub _uncolorized_length($)
 {
     my $str = shift;
     $str =~ s/\e \[ [^m]* m//xmsg;
-    return columns $str;
+    return _columns $str;
 }
 
 # minimal width of $1 if word-wrapped
 sub _min_width($)
 {
     my $str = shift;
-    return linefold_columns_min $str;
+    return _linefold_columns_min $str;
 }
 
 # width of $1 if not word-wrapped
@@ -116,9 +111,9 @@ sub _wrap($$)
     my @w = ();
     my $lf = Text::LineFold->new( ColMax => $width );
     @w = split /\n/,
-      $utf8->decode(
+      decode_utf8(
         $lf->fold(
-            '', '', utf8::is_utf8($text) ? $utf8->encode($text) : $text
+            '', '', utf8::is_utf8($text) ? encode_utf8($text) : $text
         )
       );
     return \@w;
