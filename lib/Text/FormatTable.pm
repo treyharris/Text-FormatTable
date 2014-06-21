@@ -4,6 +4,10 @@ use Carp;
 use strict;
 use warnings;
 use vars qw($VERSION);
+use Unicode::GCString;
+use Unicode::LineBreak;
+use Text::LineFold;
+use Encode;
 
 $VERSION = '1.03';
 
@@ -32,24 +36,39 @@ Methods:
 
 =cut
 
+sub _linefold_columns_min {
+    my $str = shift;
+    my $min;
+    my $lb = Unicode::LineBreak->new( ColMax => 1 );
+    foreach ($lb->break($str)) {
+        my $l = $_->columns;
+        $min = $l if not defined $min or $l > $min;
+    }
+    return $min ? $min : 1;
+}
+
+sub _columns {
+    my $str = scalar shift;
+
+    return 0 if ( !defined $str || $str eq '' );
+
+    $str = decode_utf8($str) unless utf8::is_utf8($str);
+    return Unicode::GCString->new($str)->columns();
+}
+
 # Remove ANSI color sequences when calculating length
 sub _uncolorized_length($)
 {
     my $str = shift;
     $str =~ s/\e \[ [^m]* m//xmsg;
-    return length $str;
+    return _columns $str;
 }
 
 # minimal width of $1 if word-wrapped
 sub _min_width($)
 {
     my $str = shift;
-    my $min;
-    for my $s (split(/\s+/,$str)) {
-        my $l = _uncolorized_length $s;
-        $min = $l if not defined $min or $l > $min;
-    }
-    return $min ? $min : 1;
+    return _linefold_columns_min $str;
 }
 
 # width of $1 if not word-wrapped
@@ -71,61 +90,15 @@ sub _max($$)
 sub _wrap($$)
 {
     my ($width, $text) = @_;
-    my @lines = split(/\n/, $text);
     my @w = ();
-    for my $l (@lines) {
-        push @w, @{_wrap_line($width, $l)};
-    }
+    my $lf = Text::LineFold->new( ColMax => $width );
+    @w = split /\n/,
+      decode_utf8(
+        $lf->fold(
+            '', '', utf8::is_utf8($text) ? encode_utf8($text) : $text
+        )
+      );
     return \@w;
-}
-
-sub _wrap_line($$)
-{
-    my ($width, $text) = @_;
-    my $width_m1 = $width-1;
-    my @t = ($text);
-    while(1) {
-        my $t = pop @t;
-        my $l = _uncolorized_length $t;
-        if($l <= $width){
-            # last line is ok => done
-            push @t, $t;
-            return \@t;
-        }
-        elsif($t =~ /^(.{0,$width_m1}\S)\s+(\S.*?)$/) {
-            # farest space < width
-            push @t, $1;
-            push @t, $2;
-        }
-        elsif($t =~ /(.{$width,}?\S)\s+(\S.*?)$/) {
-            # nearest space > width
-            if ( _uncolorized_length $1 > $width_m1  )
-            {
-                # hard hyphanation 
-                my $left = substr($1,0,$width);
-                my $right= substr($1,$width);
-
-                push @t, $left;
-                push @t, $right;
-                push @t, $2;
-            }
-            else
-            {
-                push @t, $1;
-                push @t, $2;
-            }
-        }
-        else {
-            # hard hyphanation 
-            my $left = substr($t,0,$width);
-            my $right= substr($t,$width);
-
-            push @t, $left;
-            push @t, $right;
-            return \@t;
-        }
-    }
-    return \@t;
 }
 
 # render left-box $2 with width $1
