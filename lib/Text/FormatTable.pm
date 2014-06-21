@@ -17,29 +17,11 @@ Text::FormatTable - Format text tables
 
 =head1 SYNOPSIS
 
- #!/usr/bin/perl -w
- use Encode;
- use Text::FormatTable;
- 
- my $ascii = find_encoding('ascii');
- my $utf8  = find_encoding('utf8');
- my $eucjp = find_encoding('euc-jp');
- 
- my $text_ja = 'utf8 encoded text from outside perl';
- $text_ja = $utf8->decode($text_ja);
- my $text_en = 'ascii encoded text from outside perl';
- $text_en = $ascii->decode($text_en);
- 
- my $table = Text::FormatTable->new('| l | l |');
- $table->rule();
- $table->head( 'en', 'ja' );
+ my $table = Text::FormatTable->new('r|l');
+ $table->head('a', 'b');
  $table->rule('=');
- $table->row( $text_en, $text_ja );
- $table->rule();
- print $eucjp->encode( $table->render(60) );
- 
- exit;
- __END__
+ $table->row('c', 'd');
+ print $table->render(20);
 
 =head1 DESCRIPTION
 
