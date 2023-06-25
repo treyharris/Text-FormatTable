@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 
+use Term::ANSIColor ();
+
 $VERSION = '1.03';
 
 =head1 NAME
@@ -84,13 +86,14 @@ sub _wrap_line($$)
     my ($width, $text) = @_;
     my $width_m1 = $width-1;
     my @t = ($text);
-    while(1) {
+
+    QUEUE: while(1) {
         my $t = pop @t;
         my $l = _uncolorized_length $t;
         if($l <= $width){
             # last line is ok => done
             push @t, $t;
-            return \@t;
+            last QUEUE;
         }
         elsif($t =~ /^(.{0,$width_m1}\S)\s+(\S.*?)$/) {
             # farest space < width
@@ -122,9 +125,23 @@ sub _wrap_line($$)
 
             push @t, $left;
             push @t, $right;
-            return \@t;
+            last QUEUE;
         }
     }
+
+    my $prefix = q{};
+
+    for (@t) {
+          my @codes = m{ (\e\[ [\d;]* m) }xg;
+
+          next unless @codes || $prefix;
+
+          my $new_prefix = join q{}, @codes;
+
+          $_ = "$prefix$_" . Term::ANSIColor::color('reset');
+          $prefix = $new_prefix if length $new_prefix;
+    }
+
     return \@t;
 }
 
